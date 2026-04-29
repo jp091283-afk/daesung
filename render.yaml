@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: gongsi-advisor
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DART_KEY
+        sync: false        # Render 대시보드에서 직접 입력
+      - key: GROQ_KEY
+        sync: false        # Render 대시보드에서 직접 입력
+      - key: LAW_KEY
+        value: "240713"    # 공개값은 여기에 직접 입력
