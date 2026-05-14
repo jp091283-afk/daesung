@@ -1363,17 +1363,14 @@ function searchDart(formName, dartKeyword, pblntf_ty, evtDateOverride){
     var today = new Date();
     // endD: 사유발생일+14일, 단 오늘 초과 불가
     endD = new Date(evBase); endD.setDate(endD.getDate() + 14);
-   startD = new Date(evBase);
+    if(endD > today) endD = today;
+    // startD: endD 기준으로 역산 → DART API 90일 제한 준수
+    // (startD = evBase - monthBack이면 +14일 때문에 90일 초과 가능)
+    startD = new Date(endD);
     if(isRareForm){
-      startD.setFullYear(startD.getFullYear() - 2); // 드문 공시: evtDate 기준 2년 전
-      endD = new Date(evBase);
-      endD.setDate(endD.getDate() + 14);
-      if(endD > today) endD = new Date(today);
+      startD.setFullYear(startD.getFullYear() - 2); // 드문 공시: 2년
     } else {
-      startD.setDate(startD.getDate() - 44); // evtDate 기준 앞 44일
-      endD = new Date(startD);
-      endD.setDate(endD.getDate() + 89);     // 총 89일
-      if(endD > today) endD = new Date(today);
+      startD.setDate(startD.getDate() - 89); // 일반: 89일 (90일 미만 보장)
     }
   } else {
     endD = new Date(); startD = new Date();
