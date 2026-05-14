@@ -4039,7 +4039,7 @@ function renderResult(d){
     var _inputText = document.getElementById('sit') ? document.getElementById('sit').value : '';
     var _isB03Disposal = (d.top && d.top.id==='B03') && /처분|매각|매도/.test(_inputText);
     var _fn  = _isB03Disposal ? '자기주식 처분결정' : (d.formName || (d.top && d.top.dartKeyword) || '');
-    var _pty = (d.top && d.top.pblntf_ty) || 'A';
+    var _pty = (d.top && d.top.pblntf_ty) || 'I';
     var _kw  = _isB03Disposal ? '자기주식처분' : ((d.top && d.top.dartKeyword) || _fn);
     var el   = document.getElementById('td');
 
