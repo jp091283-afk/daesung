@@ -4235,9 +4235,17 @@ function renderResult(d){
     f += '<div style="position:absolute;left:28px;top:0;bottom:0;width:2px;background:#e2e8f0;border-radius:2px"></div>';
 
     sched.forEach(function(item, idx){
-      var offset = item.daysOffset || 0;
-      var itemDate = new Date(baseDate);
-      itemDate.setDate(itemDate.getDate() + offset);
+     var offset = item.daysOffset || 0;
+var itemDate = new Date(baseDate);
+if(offset === 7 && item.title && item.title.indexOf('소유상황') >= 0){
+  var settle = new Date(baseDate); var bc = 0;
+  while(bc < 2){ settle.setDate(settle.getDate()+1); var sw=settle.getDay(); var shk=settle.toISOString().slice(0,10); if(sw!==0&&sw!==6&&!KR_HOLIDAYS.has(shk)) bc++; }
+  var dl = new Date(settle); bc = 0;
+  while(bc < 5){ dl.setDate(dl.getDate()+1); var dw=dl.getDay(); var dhk=dl.toISOString().slice(0,10); if(dw!==0&&dw!==6&&!KR_HOLIDAYS.has(dhk)) bc++; }
+  itemDate = dl;
+} else {
+  itemDate.setDate(itemDate.getDate() + offset);
+}
 
       // 주말·공휴일 자동 조정 함수 (공휴일 포함 처리)
       function adjustForWeekend(date, type){
