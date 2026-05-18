@@ -3280,6 +3280,17 @@ function buildDefaultSchedule(ruleId, formName, evtDate){
     {daysOffset:180,title:'투자 완료 및 결과 보고',type:'자율공시',desc:'투자 완료 후 결과 자율공시 (해당 시)',venue:'KIND'}
   ];
 
+  // ─── 유형자산 처분(매각) ───
+  var SCHED_ASSET_SELL = [
+    {daysOffset:-14,title:'자산 처분 타당성 검토',type:'내부절차',desc:'처분 목적·처분가액 적정성 검토 (외부평가기관 감정평가 의뢰 — 장부가와 20% 이상 차이 시 의무). 특수관계인 거래 여부 확인',venue:'내부'},
+    {daysOffset:-7,title:'매매계약서 초안 검토',type:'서류준비',desc:'법무팀·외부 법률자문 검토. 계약금액 기준: 매매가·장부가 중 큰 금액 적용. 등기부등본 권리관계 확인',venue:'내부'},
+    {daysOffset:0,title:'이사회 결의',type:'이사회',desc:'유형자산 처분 이사회 결의 (처분 자산 특정, 처분가액, 처분 상대방 결정)',venue:'내부'},
+    {daysOffset:0,title:'유형자산처분결정 KIND 공시 (당일)',type:'의무공시',desc:'KIND 수시공시 — 자산총액 5%(대규모 2.5%) 이상 시 결의 당일 또는 익일까지 의무. 공시규정 제7조제1항제2호나목(2)',venue:'KIND'},
+    {daysOffset:1,title:'매매계약 체결',type:'서류준비',desc:'매수인과 매매계약서 정식 체결 및 계약금 수령',venue:'내부'},
+    {daysOffset:30,title:'소유권 이전 등기',type:'등기',desc:'잔금 수령 후 부동산 소유권 이전등기 신청 (해당 시). 법인등기부 등 권리 변동사항 정리',venue:'법원'},
+    {daysOffset:31,title:'처분 완료 자율공시',type:'자율공시',desc:'자산 처분 완료 후 대금 수령·소유권 이전 완료 시 KIND 자율공시 (해당 시)',venue:'KIND'}
+  ];
+
   // ─── 채무보증 ───
   var SCHED_GUARANTEE = [
     {daysOffset:-3,title:'보증 타당성 검토',type:'내부절차',desc:'피보증인 신용도, 보증금액, 리스크 검토',venue:'내부'},
@@ -3308,7 +3319,7 @@ function buildDefaultSchedule(ruleId, formName, evtDate){
     'F01': SCHED_AUDIT,
     'H01': SCHED_DISHONOR, 'N11': SCHED_DISHONOR,
     'H02': SCHED_DISHONOR, 'N12': SCHED_DISHONOR,
-    'C01': SCHED_INVEST, 'C02': SCHED_INVEST,
+    'C01': SCHED_INVEST,
     'D03': SCHED_GUARANTEE, 'D07': SCHED_GUARANTEE,
     'D05': SCHED_GUARANTEE, 'D06': SCHED_GUARANTEE,  // 원리금 미지급
     'A01': SCHED_A01, 'A02': SCHED_A02, 'A04': SCHED_A04, 'A05': SCHED_A05, 'A06': SCHED_A06,
@@ -3320,6 +3331,12 @@ function buildDefaultSchedule(ruleId, formName, evtDate){
     'F02': SCHED_F02,
     'C04': SCHED_C04, 'A03': SCHED_A03, 'D01': SCHED_LOAN,
   };
+
+  // C02: 처분/취득 분기 — 유형자산 처분(매각) vs 취득
+  if(ruleId==='C02'){
+    if(/처분|매각|매도|양도/.test(formName)||/처분|매각|매도|양도/.test(fn)) return SCHED_ASSET_SELL;
+    return SCHED_INVEST;
+  }
 
   // B03: 처분/취득 분기 (byId 이후 우선 처리)
   if(ruleId==='B03'){
@@ -3425,7 +3442,7 @@ async function doAnalyze(){
   try{
   var amount=extractAmount(text);
   var shares=extractShares(text);
-  const matched = matchRules(text, amount, T);
+  const matched=matchRules(text, amount, T);
   const evtDate=document.getElementById('evtDate')?document.getElementById('evtDate').value:'';
 
   // Groq AI 분석 (병렬)
@@ -3736,6 +3753,12 @@ async function doAnalyze(){
     var isDisposal = /처분|매각|매도|자사주처분|자기주식처분/.test(text);
     dartMainKw   = isDisposal ? '자기주식처분' : '자기주식취득';
     dartMainForm = isDisposal ? '자기주식 처분결정' : '자기주식취득결정';
+  }
+  // C02 처분/취득 구분 — 유형자산 처분(매각) vs 취득 DART 키워드 분리
+  if(top.id==='C02'){
+    var isAssetDisposal = /처분|매각|매도|양도/.test(text);
+    dartMainKw   = isAssetDisposal ? '유형자산처분' : '유형자산취득';
+    dartMainForm = isAssetDisposal ? '유형자산처분결정' : '유형자산취득결정';
   }
   var dartMainPty  = (aiResult&&aiResult.disclosures&&aiResult.disclosures[0]) ? (aiResult.disclosures[0].pblntf_ty||top.pblntf_ty) : top.pblntf_ty;
   const [dartResults, lawInfo] = await Promise.all([
