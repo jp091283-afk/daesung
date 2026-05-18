@@ -18,11 +18,11 @@ def index():
     # 하드코딩된 키를 환경변수 값으로 교체
     import re
     if GROQ_KEY:
-        html = re.sub(
-            r"(GROQ_KEY\s*=\s*)['\"][^'\"]*['\"]",
-            f'GROQ_KEY = "{GROQ_KEY}"',
-            html, count=1
-        )
+html = re.sub(
+    r'GROQ_KEY="[^"]*"',
+    f'GROQ_KEY="{GROQ_KEY}"',
+    html, count=1
+)
     if LAW_KEY:
         html = re.sub(
             r"(LAW_KEY\s*=\s*)['\"][^'\"]*['\"]",
