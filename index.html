@@ -2084,7 +2084,7 @@ function isJibunDisclosure(rule){return rule&&rule.grp&&rule.grp.startsWith("지
 
 function extractShares(text){const pat=/(\d[\d,]*)\s*주(?!식회사|주총|주주|주권|주당|주가)/g;let s=[],m;while((m=pat.exec(text))!==null){const v=parseInt(m[1].replace(/,/g,""));if(v>0&&v<99999999)s.push(v);}return s.length>0?Math.max(...s):0;}
 
-function matchRules(text){
+function matchRules(text, amount, T){
   const t = text || "";
   // 공백 제거 정규화 (모든 STEP에서 사용)
   const tN = t.replace(/\s+/g,'');
@@ -3425,7 +3425,7 @@ async function doAnalyze(){
   try{
   var amount=extractAmount(text);
   var shares=extractShares(text);
-  const matched=matchRules(text);
+  const matched = matchRules(text, amount, T);
   const evtDate=document.getElementById('evtDate')?document.getElementById('evtDate').value:'';
 
   // Groq AI 분석 (병렬)
