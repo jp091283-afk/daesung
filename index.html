@@ -3423,8 +3423,8 @@ async function doAnalyze(){
   document.getElementById('res-area').style.display='none';
 
   try{
-  const amount=extractAmount(text);
-  const shares=extractShares(text);
+  var amount=extractAmount(text);
+  var shares=extractShares(text);
   const matched=matchRules(text);
   const evtDate=document.getElementById('evtDate')?document.getElementById('evtDate').value:'';
 
