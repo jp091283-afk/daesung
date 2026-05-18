@@ -3434,7 +3434,7 @@ async function doAnalyze(){
     btn.innerHTML='<span class="spinner"></span> AI·로직 분석 중...';
     try{aiResult=await callGroqAnalysis(text,T,matched);}
     catch(e){console.warn('Groq 오류(폴백):', e.message);}
-  }
+  
 
   // 로직 미탐지 + AI 분석 결과 처리
   if(matched.length===0){
