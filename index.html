@@ -3740,7 +3740,7 @@ async function doAnalyze(){
   var dartMainPty  = (aiResult&&aiResult.disclosures&&aiResult.disclosures[0]) ? (aiResult.disclosures[0].pblntf_ty||top.pblntf_ty) : top.pblntf_ty;
   const [dartResults, lawInfo] = await Promise.all([
     searchDart(dartMainForm, dartMainKw, dartMainPty),
-    fetchLaw(top.lawQuery, top.law)
+    fetchLaw(top.lawQuery||'', top.law||'')
   ]);
 
   const risks = [].concat(top.risks||[]).concat(aiResult?aiResult.extraRisks||[]:[]).concat(aiResult?aiResult.exemptions||[]:[]).filter(Boolean).slice(0,8);
