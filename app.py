@@ -1,4 +1,4 @@
-import os, ssl, json
+import os, ssl, json, re
 import requests
 from flask import Flask, send_file, request, Response, jsonify
 
@@ -43,7 +43,6 @@ def dart_proxy():
     from urllib.parse import urlencode, parse_qs, urlparse
     qs = request.query_string.decode()
     # crtfc_key 파라미터 교체
-    import re
     qs = re.sub(r'crtfc_key=[^&]*', f'crtfc_key={DART_KEY}', qs)
     if 'crtfc_key' not in qs:
         qs = f'crtfc_key={DART_KEY}&' + qs
