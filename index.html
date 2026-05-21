@@ -1617,24 +1617,24 @@ function getFormName(ruleId, text){
     case "A06": return "중대재해발생등";
 
     // ── ❷ 재무구조-주식 (KIND 수시공시 B형 — '주요사항보고서' prefix 없음) ──
-    case "B01":
-      if(/무상증자/.test(t)) return "무상증자결정";   // ★ 교정: KIND B형, prefix 제거
-      return "유상증자결정";                          // ★ 교정: KIND B형, prefix 제거
-    case "B02": return "주식소각결정";                // ★ 교정: KIND I형, prefix 제거
+   case "B01":
+  if(/무상증자/.test(t)) return "주요사항보고서(무상증자결정)";
+  return "주요사항보고서(유상증자결정)";
+    case "B02": return "주요사항보고서(자기주식소각결정)";
     case "B03":
-      if(/신탁.*해지|해지.*신탁/.test(t)) return "자기주식취득신탁계약해지결정"; // 신탁 해지
-      if(/신탁/.test(t))                  return "자기주식취득신탁계약결정";      // 신탁 취득·연장
-      return /처분|매각|매도/.test(t)
-        ? "자기주식처분결정"    // ★ 교정: KIND B형, prefix 제거
-        : "자기주식취득결정";  // ★ 교정: KIND B형, prefix 제거
+  if(/신탁.*해지|해지.*신탁/.test(t)) return "주요사항보고서(자기주식취득신탁계약해지결정)";
+  if(/신탁/.test(t)) return "주요사항보고서(자기주식취득신탁계약결정)";
+  return /처분|매각|매도/.test(t)
+    ? "주요사항보고서(자기주식처분결정)"
+    : "주요사항보고서(자기주식취득결정)";
     case "B04":
       if(/BW|신주인수권부사채/.test(t)) return "주요사항보고서(신주인수권부사채권발행결정)";
       if(/교환사채|EB/.test(t))         return "주요사항보고서(교환사채권발행결정)";
       if(/조건부자본증권|코코본드/.test(t)) return "주요사항보고서(조건부자본증권발행결정)";
       return "주요사항보고서(전환사채권발행결정)";
     case "B05":
-      return /병합/.test(t) ? "주식병합결정" : "주식분할결정"; // ★ 교정: 분할도 KIND B형, prefix 제거
-    case "B06": return "자진상장폐지결정";  // ★ 교정: KIND B형, prefix 제거
+  return /병합/.test(t) ? "주요사항보고서(주식병합결정)" : "주요사항보고서(주식분할결정)";
+    case "B06": return "주요사항보고서(자진상장폐지결정)";
     case "B07": return "주식배당결정";
     case "B08": return "현금현물배당결정";  // ★ 교정: ㆍ·공백 제거, 해설서 KIND 서식명 기준
     case "B09": return "주식매수선택권부여결정";
