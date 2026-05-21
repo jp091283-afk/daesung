@@ -3571,6 +3571,7 @@ async function doAnalyze(){
         type:getCategoryLabel(d.pblntf_ty, d.formName),
         title:d.formName,formName:d.formName,venue:d.venue||'KIND',deadline:d.deadline||'당일',
         law:d.lawRef||'자본시장법 제161조',required:i===0,trig:'board_res'};});
+      console.log('[최종 결과 - AI 경로] disclosures:', aiResult.disclosures.length, '| schedule:', (aiResult.schedule||[]).length);
       renderResult({
         verdict:aiResult.verdict||'검토필요',
         reason:'[AI 맥락 분석] '+aiResult.contextAnalysis+'\n\n'+aiResult.reason,
@@ -3746,12 +3747,30 @@ function getCategoryLabel(pblntf_ty, formName){
     'E':'기타공시', 'F':'외부감사관련', 'G':'펀드공시', 'H':'자산유동화',
     'I':'수시공시', 'J':'공정위공시'
   }[pblntf_ty];
+  
+  // 1순위: 서식명에 "주요사항보고서" 들어있으면 무조건 주요사항보고
   if(fn.indexOf('주요사항보고서')>=0) return '주요사항보고';
+  
+  // 2순위: 지분공시 키워드
   if(fn.indexOf('특정증권등소유')>=0||fn.indexOf('대량보유')>=0||fn.indexOf('의결권대리행사')>=0) return '지분공시';
+  
+  // 3순위: 발행공시 키워드
   if(fn.indexOf('증권신고서')>=0||fn.indexOf('투자설명서')>=0||fn.indexOf('소액공모')>=0||fn.indexOf('일괄신고')>=0) return '발행공시';
+  
+  // 4순위: 정기공시 키워드
   if(fn.indexOf('사업보고서')>=0||fn.indexOf('반기보고서')>=0||fn.indexOf('분기보고서')>=0) return '정기공시';
+  
+  // 5순위: 외부감사관련
   if(fn.indexOf('감사보고서')>=0) return '외부감사관련';
+  
+  // 6순위: 기타공시 키워드
   if(fn.indexOf('결과보고서')>=0||fn.indexOf('종료보고서')>=0||fn.indexOf('매수선택권부여')>=0) return '기타공시';
+  
+  // 🆕 7순위: "결정/공시/결의/체결/해지/변경/발생" 등으로 끝나는 + 주요사항보고서 아님 = 수시공시 (KIND)
+  // 예: 유상증자결정, 무상증자결정, 합병결정, 단일판매·공급계약체결 등
+  if(/(결정|공시|결의|체결|해지|변경|발생|중단|선임|사임|보고|신고|확정|혐의|연장)$/.test(fn)) return '수시공시';
+  
+  // 폴백: pblntf_ty 코드 기반
   return byCode || '수시공시';
 }
 
@@ -3894,7 +3913,9 @@ function dedupDiscs(discs){
     ? builtSched
     : ((aiResult&&aiResult.schedule&&aiResult.schedule.length>0) ? aiResult.schedule : builtSched);
 
-  const data={verdict,reason,
+  console.log('[최종 결과] disclosures:', logicDiscs.length, '| schedule:', finalSchedule.length);
+    
+    const data={verdict,reason,
     disclosureTypes:logicDiscs,
     amounts:{eventAmount:amount,shareCount:shares,applicableThreshold:thresh,thresholdAmount:thrAmt,comparison:comp},
     legalBasis:[top.law,"유가증권시장 공시규정(2024.12.1 시행, 규정 제2267호)","자본시장과 금융투자업에 관한 법률","상법"],
