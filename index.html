@@ -1091,7 +1091,7 @@ const VC={"KIND":{bg:"#dbeafe",tx:"#1e40af"},"DART":{bg:"#dcfce7",tx:"#15803d"},
 
 // ── 상태 ──
 let fin={co:"대성산업 주식회사",as:17392,eq:6464,rv:15659,yr:"2025.12.31",lrg:false,market:"kospi"};
-let DART_KEY="",LAW_KEY="240713",GROQ_KEY="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";
+let DART_KEY="",LAW_KEY="240713",GROQ_KEY="";
 
 function getT(){
   const lrg=fin.lrg||false;
@@ -1314,7 +1314,7 @@ async function testLaw(){
   if(!key){document.getElementById('law-test-result').textContent='키를 입력하세요';return;}
   document.getElementById('law-test-result').textContent='테스트 중...';
   try{
-    const url=`https://www.law.go.kr/DRF/lawService.do?OC=${key}&target=lsInfoP&type=JSON&query=자본시장법`;
+    const url=`/api/law?query=${encodeURIComponent('자본시장법')}`;
     const r=await fetch(url);
     const text=await r.text();
     if(text.includes('법령명')||text.includes('자본시장')){
@@ -1494,7 +1494,7 @@ function buildDartSearchLink(formName){
 async function fetchLaw(lawQuery,articleNum){
   if(!LAW_KEY) return null;
   try{
-    const url=`https://www.law.go.kr/DRF/lawService.do?OC=${LAW_KEY}&target=lsInfoP&type=JSON&query=${encodeURIComponent(lawQuery)}`;
+    const url=`/api/law?query=${encodeURIComponent(lawQuery)}`;
     const r=await fetch(url);
     const text=await r.text();
     try{
@@ -1512,7 +1512,7 @@ async function fetchLaw(lawQuery,articleNum){
 async function fetchLawArticle(msrl,articleNum){
   if(!LAW_KEY||!msrl) return null;
   try{
-    const url=`https://www.law.go.kr/DRF/lawService.do?OC=${LAW_KEY}&target=lsInfoP&MSR=${msrl}&type=JSON`;
+    const url=`/api/law?MSR=${encodeURIComponent(msrl)}`;
     const r=await fetch(url);
     const text=await r.text();
     return text.length>100?text.substring(0,2000):null;
@@ -2729,9 +2729,9 @@ async function callGroqAnalysis(text, T, logicMatched){
     + '[공시 판단 상황]\n' + text + '\n\n'
     + '중요: schedule 배열에 8개 이상 항목 필수 생성. 처음 준비단계부터 최종 등기까지 전 과정 포함.';
 
-  var r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  var r = await fetch("/api/groq", {
     method: "POST",
-    headers: {"Content-Type": "application/json", "Authorization": "Bearer " + GROQ_KEY},
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
       messages: [
