@@ -3506,12 +3506,17 @@ async function doAnalyze(){
   const matched=matchRules(text, amount, T);
   const evtDate=document.getElementById('evtDate')?document.getElementById('evtDate').value:'';
 
-  // Groq AI 분석 (병렬)
+  // Groq AI — 로직 탐지 시: 백그라운드(비차단) / 미탐지 시: 대기
   var aiResult=null;
+  var _aiPromise=null;
   if(GROQ_KEY){
-    btn.innerHTML='<span class="spinner"></span> AI·로직 분석 중...';
-    try{aiResult=await callGroqAnalysis(text,T,matched);}
-    catch(e){console.warn('Groq 오류(폴백):', e.message);}
+    if(matched.length===0){
+      btn.innerHTML='<span class="spinner"></span> AI 분석 중...';
+      try{aiResult=await callGroqAnalysis(text,T,matched);}
+      catch(e){console.warn('Groq 오류:', e.message);}
+    } else {
+      _aiPromise=callGroqAnalysis(text,T,matched).catch(function(){return null;});
+    }
   }
 
   // 로직 미탐지 + AI 분석 결과 처리
@@ -3945,6 +3950,30 @@ function dedupDiscs(discs){
     schedule: finalSchedule
   };
   renderResult(data);
+    if(_aiPromise){
+    _aiPromise.then(function(aiR){
+      if(!aiR) return;
+      var extras=[].concat(aiR.extraRisks||[]).concat(aiR.exemptions||[]).filter(Boolean);
+      if(!extras.length) return;
+      var te=document.getElementById('te');
+      if(!te) return;
+      var existing=new Set();
+      te.querySelectorAll('.risk-i').forEach(function(el){
+        existing.add(el.textContent.trim().slice(0,30));
+      });
+      extras.forEach(function(r){
+        if(!r) return;
+        var key=r.trim().slice(0,30);
+        if(existing.has(key)) return;
+        existing.add(key);
+        var div=document.createElement('div');
+        div.className='risk-i';
+        div.setAttribute('data-ai','1');
+        div.innerHTML='<span>⚠</span><div>'+r+'</div>';
+        te.appendChild(div);
+      });
+    }).catch(function(){});
+  }
   }catch(err){
     console.error('doAnalyze error:', err);
     document.getElementById('emp').style.display='block';
