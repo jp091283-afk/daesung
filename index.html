@@ -2802,7 +2802,7 @@ async function callGroqAnalysis(text, T, logicMatched){
         {role: "system", content: systemContent},
         {role: "user",   content: userContent}
       ],
-      max_tokens: 1500,
+      max_tokens: 3000,
       temperature: 0.05,
       response_format: {type: "json_object"}
     })
@@ -2818,38 +2818,7 @@ async function callGroqAnalysis(text, T, logicMatched){
   console.log('[Groq] verdict:', p.verdict, '| disclosures:', p.disclosures.length, '| schedule:', p.schedule.length);
   return p;
 }
-sync function callGroqFast(text, T, logicMatched){
-  var logicSummary = (logicMatched && logicMatched.length > 0)
-    ? logicMatched.slice(0,3).map(function(m){ return getFormName(m.rule.id,'') + '(' + m.rule.cat + ')'; }).join(', ')
-    : '로직 탐지 없음';
 
-  var sysMsg = '당신은 한국 상장법인 공시 전문가입니다. '
-    + '로직이 이미 공시 유형을 탐지했습니다. 추가 리스크와 면제 조건만 보완하세요.\n'
-    + '자산총액:' + T.as + '억 | 자기자본:' + T.eq + '억 | 매출액:' + T.re + '억\n'
-    + '탐지된 공시: ' + logicSummary + '\n\n'
-    + '아래 JSON만 반환 (다른 텍스트 금지):\n'
-    + '{"extraRisks":["리스크1","리스크2"],"exemptions":["주의사항1"]}';
-
-  var r = await fetch("/api/groq", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        {role: "system", content: sysMsg},
-        {role: "user",   content: '[상황]\n' + text}
-      ],
-      max_tokens: 400,
-      temperature: 0.05,
-      response_format: {type: "json_object"}
-    })
-  });
-  if(!r.ok){ throw new Error("Groq Fast HTTP " + r.status); }
-  var d = await r.json();
-  var p = JSON.parse(d.choices[0].message.content);
-  return {extraRisks: p.extraRisks||[], exemptions: p.exemptions||[]};
-}
-  
 function calcM04Deadline(evtDateStr){
   if(!evtDateStr||evtDateStr.length<10) return '결제일(체결일+2영업일)부터 5영업일 이내';
   try{
@@ -3546,7 +3515,7 @@ async function doAnalyze(){
       try{aiResult=await callGroqAnalysis(text,T,matched);}
       catch(e){console.warn('Groq 오류:', e.message);}
     } else {
-      _aiPromise=callGroqFast(text,T,matched).catch(function(){return null;});
+      _aiPromise=callGroqAnalysis(text,T,matched).catch(function(){return null;});
     }
   }
 
