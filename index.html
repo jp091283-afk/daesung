@@ -2655,37 +2655,100 @@ async function callGroqAnalysis(text, T, logicMatched){
     + dartForms + '\n\n'
     + specialRules + '\n\n'
 
-    + '[정확한 공시서식명 — 이 목록만 사용]\n'
-    + '생산중단 = formName:생산중단 I KIND (※생산활동중단 서식 없음. 생산중단 또는 생산중단(자율공시))\n'
-    + '유상증자 = formName:주요사항보고서(유상증자결정) B DART + 유상증자결정 I KIND\n'
-    + '무상증자 = formName:무상증자결정 I KIND (주요사항보고서 불필요, 청약·납입 없음)\n'
-    + '감자(유상) = formName:주요사항보고서(감자결정) B DART + 감자결정 I KIND\n'
-    + '감자(무상) = formName:주요사항보고서(감자결정) B DART + 감자결정 I KIND\n'
-    + '물적분할 = formName:주요사항보고서(물적분할결정) B DART + 분할결정 I KIND\n'
-    + '인적분할 = formName:주요사항보고서(인적분할결정) B DART + 분할결정 I KIND\n'
-    + '합병 = formName:주요사항보고서(합병결정) B DART + 합병결정 I KIND\n'
-    + '소규모합병 = formName:주요사항보고서(소규모합병결정) B DART + 합병결정 I KIND\n'
-    + '타법인주식취득 = formName:타법인 주식 및 출자증권 취득결정 I KIND\n'
-    + '타법인주식처분 = formName:타법인 주식 및 출자증권 처분결정 I KIND\n'
-    + '자기주식취득 = formName:자기주식취득결정 I KIND+DART\n'
-    + '자기주식처분 = formName:자기주식처분결정 I KIND+DART (취득과 완전히 다른 서식)\n'
-    + '단일계약체결 = formName:단일판매ㆍ공급계약체결 I KIND (이사회결의 불요)\n'
-    + '단일계약해지 = formName:단일판매ㆍ공급계약해지 I KIND\n'
-    + '차입금증가 = formName:단기차입금증가결정 I KIND\n'
-    + '유형자산취득 = formName:유형자산 취득 결정 I KIND\n'
-    + '유형자산처분 = formName:유형자산 처분결정 I KIND\n'
-    + '영업양수도 = formName:주요사항보고서(영업양수도) B DART\n'
-    + '임원지분변동 = formName:임원주요주주특정증권등소유상황보고서 D DART\n'
-    + '대량보유변동 = formName:주식등의대량보유상황보고서 D DART\n'
-    + '횡령배임 = formName:횡령배임혐의발생 I KIND\n'
-    + '소송제기 = formName:소송등의제기신청 I KIND\n'
-    + '주주총회소집 = formName:주주총회소집결의 I KIND\n'
-    + '최대주주변경 = formName:최대주주변경 I KIND\n'
-    + '대표이사변경 = formName:대표이사(대표집행임원)변경 I KIND\n'
-    + '손익구조변경 = formName:손익구조변경공시 I KIND\n'
-    + '재해발생 = formName:재해발생 I KIND\n'
-    + '과징금부과 = formName:벌금과징금 I KIND\n'
-    + '어음부도 = formName:어음(수표)부도발생 I KIND\n\n'
+    + '[공시 분류 체계 — pblntf_ty 정확하게 표시 필수]\n'
+    + 'A=정기공시 | B=주요사항보고(자본시장법§161, DART) | C=발행공시 | D=지분공시 | E=기타공시 | F=외부감사관련 | I=수시공시(거래소공시규정, KIND)\n'
+    + '⚠ "주요사항보고서(...)" 서식은 무조건 pblntf_ty=B, venue=DART\n'
+    + '⚠ "특정증권등소유"/"대량보유" 서식은 무조건 pblntf_ty=D, venue=DART\n'
+    + '⚠ KIND 수시공시는 pblntf_ty=I, venue=KIND\n\n'
+
+    + '[DART 주요사항보고 (B) — 자본시장법§161 근거, DART 제출]\n'
+    + '· 주요사항보고서(유상증자결정) — 유상증자 결의시\n'
+    + '· 주요사항보고서(유무상증자결정) — 유무상증자 동시\n'
+    + '· 주요사항보고서(감자결정) — 유상/무상 감자\n'
+    + '· 주요사항보고서(합병결정) — 일반 합병\n'
+    + '· 주요사항보고서(소규모합병결정) — 소규모 합병\n'
+    + '· 주요사항보고서(분할결정) — 물적/인적 분할\n'
+    + '· 주요사항보고서(분할합병결정) — 분할 후 합병\n'
+    + '· 주요사항보고서(주식교환·이전결정) — 포괄적 교환·이전\n'
+    + '· 주요사항보고서(소규모주식교환·이전결정)\n'
+    + '· 주요사항보고서(자기주식취득결정) — 직접 취득\n'
+    + '· 주요사항보고서(자기주식처분결정) — 매각·처분\n'
+    + '· 주요사항보고서(자기주식취득신탁계약체결결정)\n'
+    + '· 주요사항보고서(자기주식취득신탁계약해지결정)\n'
+    + '· 주요사항보고서(영업양수결정) / 주요사항보고서(영업양도결정)\n'
+    + '· 주요사항보고서(자산양수도결정) — 자산총액 10% 이상\n'
+    + '· 주요사항보고서(타법인주식및출자증권양수결정)\n'
+    + '· 주요사항보고서(타법인주식및출자증권양도결정)\n'
+    + '· 주요사항보고서(전환사채권발행결정) — CB\n'
+    + '· 주요사항보고서(신주인수권부사채권발행결정) — BW\n'
+    + '· 주요사항보고서(교환사채권발행결정) — EB\n'
+    + '· 주요사항보고서(상각형조건부자본증권발행결정)\n'
+    + '· 주요사항보고서(전환형조건부자본증권발행결정)\n'
+    + '· 주요사항보고서(부도발생) / 주요사항보고서(영업정지)\n'
+    + '· 주요사항보고서(회생절차개시신청) / 주요사항보고서(해산사유발생)\n'
+    + '· 주요사항보고서(채권은행등의관리절차개시)\n'
+    + '· 주요사항보고서(소송등의제기)\n'
+    + '· 주요사항보고서(해외증권시장상장·폐지)\n\n'
+
+    + '[KIND 수시공시 (I) — 공시규정 근거, KIND 제출]\n'
+    + '· 유상증자결정 / 무상증자결정 / 유무상증자결정\n'
+    + '· 감자결정 / 합병결정 / 분할결정 / 분할합병결정\n'
+    + '· 주식교환·이전결정 / 소규모합병결정\n'
+    + '· 자기주식취득결정 / 자기주식처분결정\n'
+    + '· 자기주식취득신탁계약체결결정 / 자기주식취득신탁계약해지결정\n'
+    + '· 타법인 주식 및 출자증권 취득결정 / 처분결정\n'
+    + '· 유형자산 취득 결정 / 유형자산 처분결정\n'
+    + '· 영업양수결정 / 영업양도결정 / 자산양수도결정\n'
+    + '· 단일판매ㆍ공급계약체결 / 단일판매ㆍ공급계약해지\n'
+    + '· 단기차입금증가결정\n'
+    + '· 채무보증결정 / 채무보증해지결정 / 채무인수결정 / 채무면제결정\n'
+    + '· 최대주주변경 / 최대주주변경을수반하는주식담보제공계약체결\n'
+    + '· 대표이사(대표집행임원)변경\n'
+    + '· 주주총회소집결의 / 정기주주총회결과 / 임시주주총회결과\n'
+    + '· 주식배당결정 / 현금ㆍ현물배당결정\n'
+    + '· 손익구조변경공시 — 매출/영업손익/순손익 30%(大15%) 이상 변동\n'
+    + '· 매출액또는손익구조30%(대규모법인은15%)이상변동\n'
+    + '· 횡령ㆍ배임혐의발생 / 횡령ㆍ배임확정\n'
+    + '· 소송등의제기·신청 / 손해배상소송제기 / 손해배상소송확정\n'
+    + '· 어음(수표)부도발생 / 부도발생\n'
+    + '· 영업정지 / 영업양수도결정\n'
+    + '· 재해발생 / 생산중단 / 생산중단(자율공시)\n'
+    + '· 벌금ㆍ과징금\n'
+    + '· 회생절차개시신청 / 회생계획안인가결정\n'
+    + '· 풋백옵션등주요계약체결 / 풋백옵션등주요계약해지\n\n'
+
+    + '[DART 지분공시 (D) — 자본시장법§147/§173]\n'
+    + '· 임원ㆍ주요주주특정증권등소유상황보고서 — 임원/주요주주 지분 변동 (5영업일)\n'
+    + '· 주식등의대량보유상황보고서 — 5% 신규/변동/변경 (5영업일)\n'
+    + '· 의결권대리행사권유 참고서류\n\n'
+
+    + '[DART 발행공시 (C)]\n'
+    + '· 증권신고서(지분증권) / 증권신고서(채무증권)\n'
+    + '· 증권신고서(파생결합증권) / 증권신고서(합병등)\n'
+    + '· 일괄신고서 / 일괄신고추가서류\n'
+    + '· 투자설명서 / 정정신고\n'
+    + '· 발행실적보고서 / 소액공모공시서류\n\n'
+
+    + '[DART 기타공시 (E)]\n'
+    + '· 자기주식취득결과보고서 / 자기주식처분결과보고서\n'
+    + '· 자기주식취득신탁계약체결결과보고서 / 자기주식취득신탁계약해지결과보고서\n'
+    + '· 주식매수선택권부여신고\n'
+    + '· 합병종료보고서 / 분할종료보고서 / 영업양수도종료보고서 / 주식교환·이전종료보고서\n\n'
+
+    + '[DART 정기공시 (A)]\n'
+    + '· 사업보고서 / 반기보고서 / 분기보고서 / 등록법인결산서류\n\n'
+
+    + '[DART 외부감사관련 (F)]\n'
+    + '· 감사보고서 / 연결감사보고서\n\n'
+
+    + '[혼동 주의 — 동일 사건 복수 공시 패턴]\n'
+    + '· 유상증자 → 주요사항보고서(유상증자결정) [B/DART] + 유상증자결정 [I/KIND] 동시\n'
+    + '· 무상증자 → 무상증자결정 [I/KIND]만 (주요사항보고서 없음)\n'
+    + '· 감자 → 주요사항보고서(감자결정) [B/DART] + 감자결정 [I/KIND] 동시\n'
+    + '· 합병 → 주요사항보고서(합병결정) [B/DART] + 합병결정 [I/KIND] 동시\n'
+    + '· 분할 → 주요사항보고서(분할결정) [B/DART] + 분할결정 [I/KIND] 동시\n'
+    + '· 자기주식 → 주요사항보고서(자기주식취득/처분결정) [B/DART] + 자기주식취득/처분결정 [I/KIND] 동시\n'
+    + '· 임원지분변동 → 임원ㆍ주요주주특정증권등소유상황보고서 [D/DART]만 (1건만 표시)\n\n'
 
     + '[판단 규칙]\n'
     + '1. specialRules의 맥락 판단 트리(STEP1~4)를 순서대로 적용\n'
@@ -3505,7 +3568,7 @@ async function doAnalyze(){
       try{dartR=await searchDart(aiDartForm,aiDartKw,main.pblntf_ty||'I');}catch(e){}
       try{lawI=await fetchLaw('',main.lawRef||'');}catch(e){}
       var allDiscs=aiResult.disclosures.map(function(d,i){return {
-        type:d.pblntf_ty==='D'?'지분공시':d.pblntf_ty==='B'?'수시공시(주요사항보고서)':'수시공시',
+        type:getCategoryLabel(d.pblntf_ty, d.formName),
         title:d.formName,formName:d.formName,venue:d.venue||'KIND',deadline:d.deadline||'당일',
         law:d.lawRef||'자본시장법 제161조',required:i===0,trig:'board_res'};});
       renderResult({
@@ -3675,6 +3738,55 @@ async function doAnalyze(){
   }
 
   // ── logicDiscs: 로직 탐지 결과를 공시 목록으로 변환 ──
+    // ── 🆕 공시 분류 매핑 (DART/KIND 표준) ──
+function getCategoryLabel(pblntf_ty, formName){
+  var fn = (formName||'').replace(/\s/g,'');
+  var byCode = {
+    'A':'정기공시', 'B':'주요사항보고', 'C':'발행공시', 'D':'지분공시',
+    'E':'기타공시', 'F':'외부감사관련', 'G':'펀드공시', 'H':'자산유동화',
+    'I':'수시공시', 'J':'공정위공시'
+  }[pblntf_ty];
+  if(fn.indexOf('주요사항보고서')>=0) return '주요사항보고';
+  if(fn.indexOf('특정증권등소유')>=0||fn.indexOf('대량보유')>=0||fn.indexOf('의결권대리행사')>=0) return '지분공시';
+  if(fn.indexOf('증권신고서')>=0||fn.indexOf('투자설명서')>=0||fn.indexOf('소액공모')>=0||fn.indexOf('일괄신고')>=0) return '발행공시';
+  if(fn.indexOf('사업보고서')>=0||fn.indexOf('반기보고서')>=0||fn.indexOf('분기보고서')>=0) return '정기공시';
+  if(fn.indexOf('감사보고서')>=0) return '외부감사관련';
+  if(fn.indexOf('결과보고서')>=0||fn.indexOf('종료보고서')>=0||fn.indexOf('매수선택권부여')>=0) return '기타공시';
+  return byCode || '수시공시';
+}
+
+// ── 🆕 서식명 정규화 (중복 제거용) ──
+function normalizeFormName(name){
+  return (name||'')
+    .replace(/\s+/g,'')
+    .replace(/[·ㆍ・,]/g,'')
+    .replace(/[\(\)（）「」『』\[\]【】]/g,'')
+    .replace(/[\-‐‑‒–—―ー]/g,'')
+    .replace(/[\.。．、]/g,'')
+    .toLowerCase();
+}
+
+// ── 🆕 공시 목록 중복 제거 (더 상세한 서식명 우선) ──
+function dedupDiscs(discs){
+  var seen = {}, result = [];
+  discs.forEach(function(d){
+    var key = normalizeFormName(d.formName);
+    if(!key) return;
+    if(!seen[key]){
+      seen[key] = result.length;
+      result.push(d);
+    }else{
+      var existing = result[seen[key]];
+      if((d.formName||'').length > (existing.formName||'').length){
+        result[seen[key]] = Object.assign({}, existing, d, {
+          required: existing.required || d.required,
+          isMain: existing.isMain || d.isMain
+        });
+      }
+    }
+  });
+  return result;
+}
   var logicDiscs = [];
   matched.forEach(function(m){
     var fn = getFormName(m.rule.id, text);
@@ -3694,8 +3806,8 @@ async function doAnalyze(){
     logicDiscs.push({
       formName: fn,
       title: m.rule.title,
-      cat: m.rule.cat,
-      type: m.rule.cat||'수시공시',
+      cat: getCategoryLabel(m.rule.pblntf_ty, fn),
+      type: getCategoryLabel(m.rule.pblntf_ty, fn),
       venue: m.rule.venue||'KIND',
       deadline: m.rule.dead||'당일',
       law: m.rule.law||'',
@@ -3709,14 +3821,14 @@ async function doAnalyze(){
 
   // AI 결과로 logicDiscs 보완 (AI가 추가 공시 발견 시)
   if(aiResult&&aiResult.disclosures&&aiResult.disclosures.length>0){
-    var existNorms = new Set(logicDiscs.map(function(d){ return (d.formName||'').replace(/\s/g,''); }));
+   var existNorms = new Set(logicDiscs.map(function(d){ return normalizeFormName(d.formName); }));
     aiResult.disclosures.forEach(function(d){
-      var dn = (d.formName||'').replace(/\s/g,'');
+      var dn = normalizeFormName(d.formName);
       if(dn && !existNorms.has(dn)){
         logicDiscs.push({
           formName: d.formName, title: d.formName,
-          cat: d.pblntf_ty==='D'?'지분공시':'수시공시',
-          type: d.pblntf_ty==='D'?'지분공시':'수시공시',
+          cat: getCategoryLabel(d.pblntf_ty, d.formName),
+          type: getCategoryLabel(d.pblntf_ty, d.formName),
           venue: d.venue||'KIND', deadline: d.deadline||'당일',
           law: d.lawRef||'', lawRef: d.lawRef||'',
           dartKeyword: d.dartKeyword||d.formName,
@@ -3735,7 +3847,10 @@ async function doAnalyze(){
     }
   }
 
-  // M04 기한 보정
+  // 🆕 최종 중복 제거 (정규화 기준)
+  logicDiscs = dedupDiscs(logicDiscs);
+    
+    // M04 기한 보정
   logicDiscs.forEach(function(d){
     if(d.formName && d.formName.includes('특정증권')){
       d.deadline = calcM04Deadline(evtDate);
