@@ -1611,9 +1611,9 @@ function getFormName(ruleId, text){
     case "A03": return /해지|종료|취소/.test(t)
       ? "단일판매ㆍ공급계약 해지"
       : "단일판매ㆍ공급계약체결";
-    case "A04": return "제품의 수거 등";
+     case "A04": return "제품상품등의리콜";
     case "A05": return "생산중단";
-    case "A06": return "중대재해 발생";
+    case "A06": return "중대재해발생등";
 
     // ── ❷ 재무구조-주식 ──
     case "B01":
@@ -1675,15 +1675,15 @@ function getFormName(ruleId, text){
 
     // ── ❷ 재무구조-손익 ──
     case "E01": return "재해발생";
-    case "E02": return "과징금 등 부과";
-    case "E03": return "횡령ㆍ배임혐의 발생";
-    case "E04": return "파생상품계약 관련 손실 발생";
-    case "E05": return "매출채권 이외 채권에서의 대규모 손상차손 발생";
+    case "E02": return "과징금과태료부과";
+    case "E03": return "횡령배임혐의발생";
+    case "E04": return "파생상품손실발생";
+    case "E05": return "매출채권외채권손상차손";
     case "E06": return "가장납입 혐의 등";
 
     // ── ❷ 재무구조-결산 ──
     case "F01": return "감사보고서 제출";
-    case "F02": return "매출액 또는 손익구조 30%(대규모법인 15%) 이상 변동";
+    case "F02": return "손익구조변경공시";
     case "F03": return "회계처리기준 위반에 따른 검찰고발 등 조치결과";
 
     // ── ❸ 기업경영-지배구조 ──
@@ -1715,31 +1715,25 @@ function getFormName(ruleId, text){
       return /이전/.test(t) ? "주식교환ㆍ이전 결정" : "주식교환ㆍ이전 결정";
 
     // ── ❸ 기업경영-부도회생 ──
-    case "H01": return "어음ㆍ수표 부도 발생";
-    case "H02":
-      return /결정|선고|폐지/.test(t)
-        ? "회생절차 개시결정 등"
-        : "회생절차 개시신청";
-    case "H03": return "해산사유 발생";
-    case "H04": return "경영정상화계획 이행약정 체결";
+    case "H01": return "어음수표부도발생";
+    case "H02": return "기업회생절차개시신청";
+    case "H03": return "해산사유발생";
+    case "H04": return "경영정상화계획이행약정체결";
 
     // ── ❸ 기업경영-소송 ──
-    case "I01":
-      return /판결|선고|확정/.test(t)
-        ? "소송 등의 제기ㆍ신청"
-        : "소송 등의 제기ㆍ신청";
-    case "I02": return "임원ㆍ대주주 등에 대한 제소";
-    case "I03": return "소의 취하ㆍ화해 등";
-    case "I04": return "판결 확정";
+    case "I01": return "소송등의제기신청";
+    case "I02": return "임원대주주등의고소고발";
+    case "I03": return "소의취하화해등";
+    case "I04": return "소송등의판결조정";
 
     // ── ❸ 기업경영-주총 ──
-    case "J01": return "주주총회 소집결의";
-
+    case "J01": return "주주총회소집결의";
+      
     // ── ❹ 중요정보포괄 ──
-    case "K01": return "투자판단 관련 주요경영사항";
+    case "K01": return "주요경영사항발생";
 
     // ── ❺ 자율공시 ──
-    case "L01": return "기타 경영사항(자율공시)";
+    case "L01": return "기타경영사항(자율공시)";
 
     // ── ❻ 지분공시 ──
     case "M01": return "주식등의 대량보유상황보고서";
@@ -3882,6 +3876,20 @@ function dedupDiscs(discs){
   // 🆕 최종 중복 제거 (정규화 기준)
   logicDiscs = dedupDiscs(logicDiscs);
     
+  // 주요사항보고서 우선 정렬
+  logicDiscs.sort(function(a,b){
+    var pri={'주요사항보고':0,'수시공시':1,'지분공시':2,'정기공시':3,'외부감사관련':4};
+    var ap=(pri[a.type]!==undefined)?pri[a.type]:9;
+    var bp=(pri[b.type]!==undefined)?pri[b.type]:9;
+    if(ap!==bp) return ap-bp;
+    if(a.required&&!b.required) return -1;
+    if(!a.required&&b.required) return 1;
+    return 0;
+  });
+  // 주요사항보고서가 있으면 상단 서식명도 해당 서식명으로 업데이트
+  var _mainDisc = logicDiscs.find(function(d){ return d.type==='주요사항보고'; });
+  if(_mainDisc) formName = _mainDisc.formName;
+    
     // M04 기한 보정
   logicDiscs.forEach(function(d){
     if(d.formName && d.formName.includes('특정증권')){
@@ -4030,7 +4038,7 @@ function renderResult(d){
     fnBanner.innerHTML = `
       <span style="font-size:11px;color:#94a3b8;flex-shrink:0">📋 공시서식명</span>
       <span style="font-size:15px;font-weight:800;color:#38bdf8;flex:1">「${d.formName}」</span>
-      <span style="font-size:10px;background:#1e3a5f;color:#93c5fd;padding:3px 8px;border-radius:4px;flex-shrink:0">${d.top?.cat||''}</span>
+      <span style="font-size:10px;background:#1e3a5f;color:#93c5fd;padding:3px 8px;border-radius:4px;flex-shrink:0">${d.disclosureTypes?.[0]?.type||d.top?.cat||''}</span>
     `;
   } else {
     fnBanner.style.display = 'none';
