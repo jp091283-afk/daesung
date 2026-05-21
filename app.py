@@ -15,7 +15,7 @@ def index():
     with open('index.html', 'r', encoding='utf-8') as f:
         html = f.read()
 
-    # GROQ_KEY: 환경변수 있으면 더미 'proxied' 주입 (실제 키는 서버에만 존재)
+    # GROQ_KEY: 환경변수 있으면 더미 'proxied' 주입
     if GROQ_KEY and GROQ_KEY.strip():
         html = re.sub(
             r'GROQ_KEY="[^"]*"',
@@ -82,4 +82,57 @@ def dart_search():
         body = resp.content
         ct   = resp.headers.get('Content-Type', 'application/json')
     except Exception as e:
-        bo
+        body = json.dumps({'error': str(e), 'results': []}).encode()
+        ct   = 'application/json'
+
+    return Response(body, status=200, mimetype=ct,
+                    headers={'Access-Control-Allow-Origin': '*'})
+
+# ── Groq AI 프록시 ──
+@app.route('/api/groq', methods=['POST'])
+def groq_proxy():
+    if not GROQ_KEY:
+        return jsonify({'error': {'message': 'GROQ_KEY 환경변수가 설정되지 않았습니다.'}}), 500
+    try:
+        payload = request.get_json()
+        resp = requests.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {GROQ_KEY}'
+            },
+            json=payload,
+            timeout=60
+        )
+        return Response(resp.content, status=resp.status_code,
+                        mimetype='application/json; charset=utf-8',
+                        headers={'Access-Control-Allow-Origin': '*'})
+    except Exception as e:
+        return jsonify({'error': {'message': str(e)}}), 500
+
+# ── 법령정보 프록시 ──
+@app.route('/api/law')
+def law_proxy():
+    query = request.args.get('query', '')
+    msr   = request.args.get('MSR', '')
+
+    params = {'OC': LAW_KEY, 'target': 'law', 'type': 'JSON'}
+    if query: params['query'] = query
+    if msr:   params['MST']   = msr
+
+    try:
+        resp = requests.get(
+            'http://www.law.go.kr/DRF/lawSearch.do',
+            params=params,
+            headers={'User-Agent': 'Mozilla/5.0 Chrome/120'},
+            timeout=15
+        )
+        return Response(resp.content, status=200,
+                        mimetype='application/json; charset=utf-8',
+                        headers={'Access-Control-Allow-Origin': '*'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=False)
