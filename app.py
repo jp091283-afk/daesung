@@ -20,7 +20,7 @@ def index():
     if GROQ_KEY:
         html = re.sub(
             r'GROQ_KEY="[^"]*"',
-            f'GROQ_KEY="{GROQ_KEY}"',
+            f'GROQ_KEY="{GROQ_KEY.strip()}"',
             html, count=1
         )
     if LAW_KEY:
