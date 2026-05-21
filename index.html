@@ -3625,7 +3625,7 @@ async function doAnalyze(){
   // 기존 로직 처리 (원본 그대로)
   const top=matched[0].rule;
   const {thresh,thrAmt,comp}=judgeThreshold(top,amount,T);
-  const formName = getFormName(top.id, text);  // 실제 DART/KIND 공시서식명
+  let formName = getFormName(top.id, text);  // 실제 DART/KIND 공시서식명
 
   let verdict, reason;
   const trig = top.trig || "board_res";
