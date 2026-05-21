@@ -15,9 +15,8 @@ def index():
     with open('index.html', 'r', encoding='utf-8') as f:
         html = f.read()
 
-    # 하드코딩된 키를 환경변수 값으로 교체
-    import re
-    if GROQ_KEY:
+    # GROQ_KEY: 환경변수 있으면 교체, 없으면 HTML 하드코딩 키 그대로 사용
+    if GROQ_KEY and GROQ_KEY.strip():
         html = re.sub(
             r'GROQ_KEY="[^"]*"',
             f'GROQ_KEY="{GROQ_KEY.strip()}"',
