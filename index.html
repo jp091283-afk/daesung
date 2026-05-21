@@ -1617,18 +1617,18 @@ function getFormName(ruleId, text){
 
     // ── ❷ 재무구조-주식 ──
     case "B01":
-      if(/무상증자/.test(t)) return "무상증자결정";
-      if(/주식배당/.test(t)) return "주식배당결정";
-      return "유상증자결정";
+      if(/무상증자/.test(t)) return "주요사항보고서(무상증자결정)";
+      if(/주식배당/.test(t)) return "주요사항보고서(주식배당결정)";
+      return "주요사항보고서(유상증자결정)";
     case "B02": return "주식소각결정";
     case "B03":
       return /처분|매각|매도/.test(t)
         ? "자기주식 처분 결정"
         : "자기주식취득결정";
     case "B04":
-      if(/BW|신주인수권부사채/.test(t)) return "신주인수권부사채권발행결정";
-      if(/교환사채|EB/.test(t))         return "교환사채권발행결정";
-      return "전환사채권발행결정";
+      if(/BW|신주인수권부사채/.test(t)) return "주요사항보고서(신주인수권부사채권발행결정)";
+      if(/교환사채|EB/.test(t))         return "주요사항보고서(교환사채권발행결정)";
+      return "주요사항보고서(전환사채권발행결정)";
     case "B05":
       return /병합/.test(t) ? "주식병합결정" : "주식분할결정";
     case "B06": return "자진상장폐지결정";
@@ -1638,11 +1638,14 @@ function getFormName(ruleId, text){
       if(/분기배당|중간배당/.test(t)) return "현금ㆍ현물 배당 결정";
       return "현금ㆍ현물 배당 결정";
     case "B09": return "주식매수선택권부여결정";
-    case "B10":
-      if(/유상감자/.test(t)) return "감자결정(유상감자)";
-      if(/무상감자|결손보전/.test(t)) return "감자결정(무상감자)";
-      return "감자결정";
-
+     case "B10":
+      if(/유상감자/.test(t)) return "주요사항보고서(감자결정)";
+      if(/무상감자|결손보전/.test(t)) return "주요사항보고서(감자결정)";
+      return "주요사항보고서(감자결정)";
+    case "B11":
+      if(/재매도/.test(t)) return "주요사항보고서(만기전사채재매도결정)";
+      return "주요사항보고서(만기전사채취득결정)";
+      
     // ── ❷ 재무구조-투자 ──
     case "C01": return "신규시설투자결정";
     case "C02":
