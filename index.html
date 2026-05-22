@@ -4024,7 +4024,10 @@ function dedupDiscs(discs){
     document.getElementById('emp').style.display='block';
     document.getElementById('res-area').style.display='none';
     alert('분석 중 오류가 발생했습니다: ' + err.message);
-    btn.disabled=false; btn.innerHTML='🔍 공시 판단 분석';
+  }finally{
+    if(btn.disabled){
+      btn.disabled=false; btn.innerHTML='🔍 공시 판단 분析';
+    }
   }
 }
 
