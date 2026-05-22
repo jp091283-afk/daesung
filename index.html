@@ -1332,7 +1332,7 @@ async function testLaw(){
     const data=await _fetchLawJSONP(baseUrl);
     if(data?.LawSearch?.law?.length>0){_setOk('JSONP');return;}
   }catch(e){}
-  const urls=[baseUrl,'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),'https://corsproxy.io/?'+encodeURIComponent(baseUrl)];
+  const urls=[baseUrl,'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(baseUrl)];
   for(const url of urls){
     try{
       const ctrl=new AbortController();
