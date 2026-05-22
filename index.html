@@ -3916,123 +3916,103 @@ function dedupDiscs(discs){
     dartMainForm = isAssetDisposal ? '유형자산처분결정' : '유형자산취득결정';
   }
   var dartMainPty  = (aiResult&&aiResult.disclosures&&aiResult.disclosures[0]) ? (aiResult.disclosures[0].pblntf_ty||top.pblntf_ty) : top.pblntf_ty;
-  const [dartResults, lawInfo] = await Promise.all([
-    searchDart(dartMainForm, dartMainKw, dartMainPty),
-    fetchLaw(top.lawQuery||'', top.law||'')
-  ]);
-
   const risks = [].concat(top.risks||[]).concat(aiResult?aiResult.extraRisks||[]:[]).concat(aiResult?aiResult.exemptions||[]:[]).filter(Boolean).slice(0,8);
-  const schedule = (aiResult&&aiResult.schedule)||[];
 
-  // 스케줄 선택 로직
-  // 1) buildDefaultSchedule로 특정 스케줄 확인
+  // 스케줄: 로직+AI 합산 (source 태그 부착)
   var builtSched = buildDefaultSchedule(top.id, formName, evtDate);
-  // 2) 범용 폴백 여부 판단 (첫 항목 daysOffset=-3 + title='이사회 안건 검토' = 범용)
-  var isGenericSched = (builtSched.length <= 6
-    && builtSched[0] && builtSched[0].daysOffset === -3
-    && builtSched[0].title === '이사회 안건 검토');
-  // 3) 특정 스케줄이 구축된 경우 AI 스케줄보다 우선 사용
-  //    (무상증자·감자·분할·단일계약·타법인출자 등 새로 만든 스케줄 보호)
-  var finalSchedule = !isGenericSched
-    ? builtSched
-    : ((aiResult&&aiResult.schedule&&aiResult.schedule.length>0) ? aiResult.schedule : builtSched);
+  var logicSched = builtSched.map(function(s){ return Object.assign({},s,{source:'logic'}); });
+  var aiSchedEarly = (aiResult&&aiResult.schedule&&aiResult.schedule.length>0)
+    ? aiResult.schedule.map(function(s){ return Object.assign({},s,{source:'ai'}); }) : [];
+  var mergedEarly = new Set(logicSched.map(function(s){ return (s.title||'').trim(); }));
+  var finalSchedule = logicSched.concat(aiSchedEarly.filter(function(s){ return !mergedEarly.has((s.title||'').trim()); }));
 
   console.log('[최종 결과] disclosures:', logicDiscs.length, '| schedule:', finalSchedule.length);
-    
-    const data={verdict,reason,
+
+  // ── 1단계: 로직 결과 즉시 표시 ──
+  const data={verdict,reason,
     disclosureTypes:logicDiscs,
     amounts:{eventAmount:amount,shareCount:shares,applicableThreshold:thresh,thresholdAmount:thrAmt,comparison:comp},
     legalBasis:[top.law,"유가증권시장 공시규정(2024.12.1 시행, 규정 제2267호)","자본시장과 금융투자업에 관한 법률","상법"],
     formName, attachments:top.attach, cases:top.cases,
     risks:risks.length>0?risks:top.risks||[],
     board:top.board,
-    dartResults, lawInfo, top, T, evtDate,
+    dartResults:null, lawInfo:null, top, T, evtDate,
     schedule: finalSchedule
   };
   renderResult(data);
+  btn.disabled=false; btn.innerHTML='🔍 공시 판단 분석';
+
+  // ── 2단계: DART·법령 백그라운드 로딩 ──
+  Promise.all([
+    searchDart(dartMainForm, dartMainKw, dartMainPty).catch(function(){return null;}),
+    fetchLaw(top.lawQuery||'', top.law||'').catch(function(){return null;})
+  ]).then(function(res){
+    data.dartResults = res[0];
+    data.lawInfo     = res[1];
+    if(res[0] || res[1]) renderResult(data);
+  });
+
+  // ── 3단계: AI 보완 백그라운드 ──
     if(_aiPromise){
     _aiPromise.then(function(aiR){
       if(!aiR) return;
 
-      // ── 1) AI 공시유형 추가 ──
+      // ── AI 공시유형 추가 ──
       if(aiR.disclosures && aiR.disclosures.length > 0){
         var existNorms = new Set(logicDiscs.map(function(d){ return normalizeFormName(d.formName); }));
-        var added = [];
+        var CC={'수시공시':'#0891b2','주요사항보고':'#7c3aed','지분공시':'#d97706','정기공시':'#16a34a','외부감사관련':'#64748b','발행공시':'#dc2626'};
+        var VC={'KIND':{bg:'#eff6ff',tx:'#1a4a8a'},'DART':{bg:'#fef3c7',tx:'#92400e'},'KIND+DART':{bg:'#f3e8ff',tx:'#6d28d9'}};
         aiR.disclosures.forEach(function(d){
           var dn = normalizeFormName(d.formName);
-          if(dn && !existNorms.has(dn)){
-            existNorms.add(dn);
-            added.push({
-              formName: d.formName, title: d.formName,
-              cat: getCategoryLabel(d.pblntf_ty, d.formName),
-              type: getCategoryLabel(d.pblntf_ty, d.formName),
-              venue: d.venue||'KIND', deadline: d.deadline||'당일',
-              law: d.lawRef||'', lawRef: d.lawRef||'',
-              pblntf_ty: d.pblntf_ty||'I', required: d.isMain||false
-            });
-          }
-        });
-        if(added.length > 0){
+          if(!dn || existNorms.has(dn)) return;
+          existNorms.add(dn);
+          var dt = {formName:d.formName,type:getCategoryLabel(d.pblntf_ty,d.formName),venue:d.venue||'KIND',deadline:d.deadline||'당일',law:d.lawRef||'',required:d.isMain||false};
+          var v2 = VC[dt.venue]||{bg:'#f1f5f9',tx:'#374151'};
+          var html = '<div class="di" style="border-left:3px solid #7c3aed">'
+            +'<div style="display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap">'
+            +'<span class="db" style="background:'+(CC[dt.type]||'#374151')+';color:#fff">'+dt.type+'</span>'
+            +'<span class="db" style="background:'+v2.bg+';color:'+v2.tx+'">'+dt.venue+'</span>'
+            +'<span class="db" style="background:#ede9fe;color:#6d28d9;font-size:9px">🤖 AI</span>'
+            +(dt.required?'<span class="db" style="background:#fee2e2;color:#dc2626">필수</span>':'<span class="db" style="background:#f1f5f9;color:#64748b">참고</span>')
+            +'</div>'
+            +'<div style="margin-bottom:4px"><span style="font-size:11px;color:#94a3b8">공시서식명</span>'
+            +'<span style="font-size:14px;font-weight:800;color:#0f172a;margin-left:6px">「'+dt.formName+'」</span></div>'
+            +'<div class="dr"><span class="drl">제출기한</span><span style="font-weight:700;color:#dc2626">'+dt.deadline+'</span></div>'
+            +'<div class="dr"><span class="drl">제출처</span><span style="font-weight:600;color:#1a4a8a">'+dt.venue+'</span></div>'
+            +'<div class="dr"><span class="drl">적용법령</span><span style="font-size:11px">'+dt.law+'</span></div>'
+            +'</div>';
           var ta = document.getElementById('ta');
-          if(ta){
-            var CC={'수시공시':'#0891b2','주요사항보고':'#7c3aed','지분공시':'#d97706','정기공시':'#16a34a','외부감사관련':'#64748b','발행공시':'#dc2626'};
-            var VC={'KIND':{bg:'#eff6ff',tx:'#1a4a8a'},'DART':{bg:'#fef3c7',tx:'#92400e'},'KIND+DART':{bg:'#f3e8ff',tx:'#6d28d9'}};
-            added.forEach(function(dt){
-              var v2=VC[dt.venue]||{bg:'#f1f5f9',tx:'#374151'};
-              var html='<div class="di" style="border-left:3px solid #7c3aed">'
-                +'<div style="display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap">'
-                +'<span class="db" style="background:'+(CC[dt.type]||'#374151')+';color:#fff">'+dt.type+'</span>'
-                +'<span class="db" style="background:'+v2.bg+';color:'+v2.tx+'">'+dt.venue+'</span>'
-                +'<span class="db" style="background:#ede9fe;color:#6d28d9;font-size:9px">🤖 AI</span>'
-                +(dt.required?'<span class="db" style="background:#fee2e2;color:#dc2626">필수</span>':'<span class="db" style="background:#f1f5f9;color:#64748b">참고</span>')
-                +'</div>'
-                +'<div style="margin-bottom:4px">'
-                +'<span style="font-size:11px;color:#94a3b8">공시서식명</span>'
-                +'<span style="font-size:14px;font-weight:800;color:#0f172a;margin-left:6px">「'+dt.formName+'」</span>'
-                +'</div>'
-                +'<div class="dr"><span class="drl">제출기한</span><span style="font-weight:700;color:#dc2626">'+dt.deadline+'</span></div>'
-                +'<div class="dr"><span class="drl">제출처</span><span style="font-weight:600;color:#1a4a8a">'+dt.venue+'</span></div>'
-                +'<div class="dr"><span class="drl">적용법령</span><span style="font-size:11px">'+(dt.law||'')+'</span></div>'
-                +'</div>';
-              ta.insertAdjacentHTML('beforeend', html);
-            });
-          }
-        }
+          if(ta) ta.insertAdjacentHTML('beforeend', html);
+        });
       }
 
-      // ── 2) AI 스케줄 추가 (기존 스케줄이 범용일 때만 교체) ──
+      // ── AI 스케줄 합산 ──
       if(aiR.schedule && aiR.schedule.length > 0){
-        var tf = document.getElementById('tf');
-        if(tf){
-          // 기존이 범용 스케줄(6개 이하)이면 AI 스케줄로 교체
-          var existingSched = tf.querySelectorAll('[style*="position:relative"]');
-          var isGeneric = data.schedule && data.schedule.length <= 6;
-          if(isGeneric){
-            // AI 스케줄로 data 업데이트 후 재렌더링
-            data.schedule = aiR.schedule;
-            data.dartResults = null;
-            data.lawInfo = null;
-            renderResult(data);
-          }
+        var aiSchedNew = aiR.schedule.map(function(s){ return Object.assign({},s,{source:'ai'}); });
+        var existTitles = new Set((data.schedule||[]).map(function(s){ return (s.title||'').trim(); }));
+        var newItems = aiSchedNew.filter(function(s){ return !existTitles.has((s.title||'').trim()); });
+        if(newItems.length > 0){
+          data.schedule = (data.schedule||[]).concat(newItems);
+          var savedDart=data.dartResults, savedLaw=data.lawInfo;
+          data.dartResults=null; data.lawInfo=null;
+          renderResult(data);
+          data.dartResults=savedDart; data.lawInfo=savedLaw;
         }
       }
 
-      // ── 3) 위험 항목 추가 ──
+      // ── 위험 항목 추가 ──
       var extras=[].concat(aiR.extraRisks||[]).concat(aiR.exemptions||[]).filter(Boolean);
       var te=document.getElementById('te');
       if(te && extras.length){
         var existing=new Set();
-        te.querySelectorAll('.risk-i').forEach(function(el){
-          existing.add(el.textContent.trim().slice(0,30));
-        });
+        te.querySelectorAll('.risk-i').forEach(function(el){ existing.add(el.textContent.trim().slice(0,30)); });
         extras.forEach(function(r){
           if(!r) return;
           var key=r.trim().slice(0,30);
           if(existing.has(key)) return;
           existing.add(key);
           var div=document.createElement('div');
-          div.className='risk-i';
-          div.setAttribute('data-ai','1');
+          div.className='risk-i'; div.setAttribute('data-ai','1');
           div.innerHTML='<span>⚠</span><div>'+r+'</div>';
           te.appendChild(div);
         });
@@ -4044,7 +4024,7 @@ function dedupDiscs(discs){
     document.getElementById('emp').style.display='block';
     document.getElementById('res-area').style.display='none';
     alert('분석 중 오류가 발생했습니다: ' + err.message);
-  }finally{
+  }catch(err){
     btn.disabled=false; btn.innerHTML='🔍 공시 판단 분석';
   }
 }
@@ -4566,6 +4546,8 @@ if(offset === 7 && item.title && item.title.indexOf('소유상황') >= 0){
       f += '<span style="font-size:12px;font-weight:700;color:#0f172a">' + (item.title||'') + '</span>';
       if(item.type) f += '<span style="font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;background:' + tc + ';color:#fff">' + item.type + '</span>';
       if(vl) f += '<span style="font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;background:#f1f5f9;color:#475569">' + vl + '</span>';
+      if(item.source==='ai')    f += '<span style="font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;background:#ede9fe;color:#6d28d9">🤖 AI</span>';
+      if(item.source==='logic') f += '<span style="font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;background:#f0fdf4;color:#16a34a">📋 규정</span>';
       f += '</div>';
       f += '<div style="font-size:11px;color:#374151;line-height:1.7;margin-bottom:5px">' + (item.desc||'') + '</div>';
       f += '<div style="font-size:10px;color:#059669;font-weight:600">';
