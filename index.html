@@ -1320,22 +1320,30 @@ async function testLaw(){
   const key=document.getElementById('k-law').value.trim();
   if(!key){document.getElementById('law-test-result').textContent='키를 입력하세요';return;}
   document.getElementById('law-test-result').textContent='테스트 중...';
-  try{
-    const url=`/api/law?query=${encodeURIComponent('자본시장법')}`;
-    const r=await fetch(url);
-    const text=await r.text();
-    if(text.includes('법령명')||text.includes('자본시장')){
-      document.getElementById('law-test-result').style.color='#6ee7b7';
-      document.getElementById('law-test-result').textContent='✓ 연결 성공';
-      document.getElementById('law-status').style.cssText="background:#064e3b;color:#6ee7b7;font-size:10px;padding:3px 8px;border-radius:5px;font-weight:600";
-      document.getElementById('law-status').textContent='법령 ●';
-      LAW_KEY=key;
-    }else throw new Error('응답 파싱 오류');
-  }catch(e){
-    document.getElementById('law-test-result').style.color='#fca5a5';
-    document.getElementById('law-test-result').textContent='※ CORS 제한 (앱 내 사용은 정상)';
+  const el=document.getElementById('law-test-result');
+  const baseUrl='https://www.law.go.kr/DRF/lawSearch.do?OC='+encodeURIComponent(key)+'&target=law&type=JSON&query='+encodeURIComponent('자본시장법');
+  function _setOk(method){
+    el.style.color='#6ee7b7'; el.textContent='✓ 연결 성공 ('+method+')';
+    document.getElementById('law-status').style.cssText="background:#064e3b;color:#6ee7b7;font-size:10px;padding:3px 8px;border-radius:5px;font-weight:600;display:inline";
+    document.getElementById('law-status').textContent='법령 ●';
     LAW_KEY=key;
   }
+  try{
+    const data=await _fetchLawJSONP(baseUrl);
+    if(data?.LawSearch?.law?.length>0){_setOk('JSONP');return;}
+  }catch(e){}
+  const urls=[baseUrl,'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),'https://corsproxy.io/?'+encodeURIComponent(baseUrl)];
+  for(const url of urls){
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),6000);
+      const r=await fetch(url,{signal:ctrl.signal});
+      clearTimeout(tid);
+      const text=await r.text();
+      if(text.includes('법령명')||text.includes('자본시장')){_setOk(url===baseUrl?'직접':'프록시');return;}
+    }catch(e){}
+  }
+  el.style.color='#fca5a5'; el.textContent='✗ 연결 실패';
 }
 
 // ── DART 공시 검색 ──
@@ -1498,22 +1506,89 @@ function buildDartSearchLink(formName){
 }
 
 // ── 법령 원문 조회 ──
+// ── 법령 원문 조회 ──
+function _fetchLawJSONP(apiUrl){
+  return new Promise(function(resolve,reject){
+    var cbName='_lawCb'+Date.now()+Math.floor(Math.random()*9999);
+    var script=document.createElement('script');
+    var done=false;
+    var timer=setTimeout(function(){
+      if(done)return; done=true;
+      delete window[cbName];
+      if(script.parentNode)script.parentNode.removeChild(script);
+      reject(new Error('timeout'));
+    },8000);
+    window[cbName]=function(data){
+      if(done)return; done=true;
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode)script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    script.src=apiUrl+'&callback='+cbName;
+    script.onerror=function(){
+      if(done)return; done=true;
+      clearTimeout(timer);
+      delete window[cbName];
+      reject(new Error('load error'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
 async function fetchLaw(lawQuery,articleNum){
-  if(!LAW_KEY) return null;
+  if(!LAW_KEY||!lawQuery) return null;
+  const baseUrl='https://www.law.go.kr/DRF/lawSearch.do'
+    +'?OC='+encodeURIComponent(LAW_KEY)
+    +'&target=law&type=JSON'
+    +'&query='+encodeURIComponent(lawQuery);
   try{
-    const url=`/api/law?query=${encodeURIComponent(lawQuery)}`;
-    const r=await fetch(url);
-    const text=await r.text();
+    const data=await _fetchLawJSONP(baseUrl);
+    const laws=data?.LawSearch?.law||[];
+    if(laws.length>0) return{name:laws[0].법령명한글||lawQuery,msrl:laws[0].법령일련번호};
+  }catch(e){}
+  const urls=[
+    baseUrl,
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),
+    'https://corsproxy.io/?'+encodeURIComponent(baseUrl)
+  ];
+  for(const url of urls){
     try{
-      const d=JSON.parse(text);
-      const laws=d.LawSearch?.law||[];
-      if(laws.length>0){
-        const law=laws[0];
-        return{name:law.법령명한글||lawQuery,msrl:law.법령일련번호};
-      }
-    }catch(e){}
-    return null;
-  }catch(e){ return null; }
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),6000);
+      const r=await fetch(url,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!r.ok) continue;
+      const d=JSON.parse(await r.text());
+      const laws=d?.LawSearch?.law||[];
+      if(laws.length>0) return{name:laws[0].법령명한글||lawQuery,msrl:laws[0].법령일련번호};
+    }catch(e){continue;}
+  }
+  return null;
+}
+
+async function fetchLawArticle(msrl,articleNum){
+  if(!LAW_KEY||!msrl) return null;
+  const baseUrl='https://www.law.go.kr/DRF/lawService.do'
+    +'?OC='+encodeURIComponent(LAW_KEY)
+    +'&target=law&MSR='+encodeURIComponent(msrl)+'&type=HTML';
+  const urls=[
+    baseUrl,
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),
+    'https://corsproxy.io/?'+encodeURIComponent(baseUrl)
+  ];
+  for(const url of urls){
+    try{
+      const ctrl=new AbortController();
+      const tid=setTimeout(()=>ctrl.abort(),6000);
+      const r=await fetch(url,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!r.ok) continue;
+      const text=await r.text();
+      if(text.length>100) return text.substring(0,2000);
+    }catch(e){continue;}
+  }
+  return null;
 }
 
 async function fetchLawArticle(msrl,articleNum){
