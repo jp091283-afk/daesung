@@ -2837,7 +2837,7 @@ async function callGroqAnalysis(text, T, logicMatched){
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
-      model: "llama-3.3-8b-versatile",
+      model: "llama-3.1-70b-versatile",
       messages: [
         {role: "system", content: systemContent},
         {role: "user",   content: userContent}
