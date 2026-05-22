@@ -124,8 +124,14 @@ def law_proxy():
         resp = requests.get(
             'https://www.law.go.kr/DRF/lawSearch.do',
             params=params,
-            headers={'User-Agent': 'Mozilla/5.0 Chrome/120'},
-            timeout=15
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'ko-KR,ko;q=0.9',
+                'Referer': 'https://www.law.go.kr/',
+            },
+            timeout=15,
+            verify=False
         )
         return Response(resp.content, status=200,
                         mimetype='application/json; charset=utf-8',
