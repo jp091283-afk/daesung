@@ -1536,58 +1536,23 @@ function _fetchLawJSONP(apiUrl){
   });
 }
 
+var _lawCache = {};
+
 async function fetchLaw(lawQuery,articleNum){
   if(!LAW_KEY||!lawQuery) return null;
-  const baseUrl='https://www.law.go.kr/DRF/lawSearch.do'
-    +'?OC='+encodeURIComponent(LAW_KEY)
-    +'&target=law&type=JSON'
-    +'&query='+encodeURIComponent(lawQuery);
+  if(_lawCache[lawQuery] !== undefined) return _lawCache[lawQuery];
   try{
-    const data=await _fetchLawJSONP(baseUrl);
-    const laws=data?.LawSearch?.law||[];
-    if(laws.length>0) return{name:laws[0].법령명한글||lawQuery,msrl:laws[0].법령일련번호};
+    const url=`/api/law?query=${encodeURIComponent(lawQuery)}`;
+    const r=await fetch(url);
+    const d=JSON.parse(await r.text());
+    const laws=d.LawSearch?.law||[];
+    if(laws.length>0){
+      const result={name:laws[0].법령명한글||lawQuery,msrl:laws[0].법령일련번호};
+      _lawCache[lawQuery]=result;
+      return result;
+    }
   }catch(e){}
-  const urls=[
-    baseUrl,
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),
-    'https://corsproxy.io/?'+encodeURIComponent(baseUrl)
-  ];
-  for(const url of urls){
-    try{
-      const ctrl=new AbortController();
-      const tid=setTimeout(()=>ctrl.abort(),6000);
-      const r=await fetch(url,{signal:ctrl.signal});
-      clearTimeout(tid);
-      if(!r.ok) continue;
-      const d=JSON.parse(await r.text());
-      const laws=d?.LawSearch?.law||[];
-      if(laws.length>0) return{name:laws[0].법령명한글||lawQuery,msrl:laws[0].법령일련번호};
-    }catch(e){continue;}
-  }
-  return null;
-}
-
-async function fetchLawArticle(msrl,articleNum){
-  if(!LAW_KEY||!msrl) return null;
-  const baseUrl='https://www.law.go.kr/DRF/lawService.do'
-    +'?OC='+encodeURIComponent(LAW_KEY)
-    +'&target=law&MSR='+encodeURIComponent(msrl)+'&type=HTML';
-  const urls=[
-    baseUrl,
-    'https://api.allorigins.win/raw?url='+encodeURIComponent(baseUrl),
-    'https://corsproxy.io/?'+encodeURIComponent(baseUrl)
-  ];
-  for(const url of urls){
-    try{
-      const ctrl=new AbortController();
-      const tid=setTimeout(()=>ctrl.abort(),6000);
-      const r=await fetch(url,{signal:ctrl.signal});
-      clearTimeout(tid);
-      if(!r.ok) continue;
-      const text=await r.text();
-      if(text.length>100) return text.substring(0,2000);
-    }catch(e){continue;}
-  }
+  _lawCache[lawQuery]=null;
   return null;
 }
 
