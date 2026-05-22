@@ -3992,15 +3992,7 @@ function dedupDiscs(discs){
   renderResult(data);
     if(_aiPromise){
     _aiPromise.then(function(aiR){
-      if(!aiR) return;
-      var vreason = document.getElementById('v-reason');
-      if(vreason && aiR.contextAnalysis){
-        var aiNote = document.createElement('div');
-        aiNote.style.cssText = 'margin-top:8px;padding:8px 10px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;font-size:11px;color:#1e40af;line-height:1.7';
-        aiNote.innerHTML = '<span style="font-weight:700">🤖 AI 보완</span> ' + aiR.contextAnalysis;
-        vreason.parentNode.insertBefore(aiNote, vreason.nextSibling);
-      }
-      
+      if(!aiR) return;   
       var extras=[].concat(aiR.extraRisks||[]).concat(aiR.exemptions||[]).filter(Boolean);
       if(!extras.length) return;
       var te=document.getElementById('te');
