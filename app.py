@@ -122,7 +122,7 @@ def law_proxy():
 
     try:
         resp = requests.get(
-            'http://www.law.go.kr/DRF/lawSearch.do',
+            'https://www.law.go.kr/DRF/lawSearch.do',
             params=params,
             headers={'User-Agent': 'Mozilla/5.0 Chrome/120'},
             timeout=15
