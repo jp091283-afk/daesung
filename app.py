@@ -131,6 +131,8 @@ def law_proxy():
                         mimetype='application/json; charset=utf-8',
                         headers={'Access-Control-Allow-Origin': '*'})
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
